@@ -1,0 +1,811 @@
+---
+title: "damselfish_territoriality_exp_code"
+author: "Noam Altman-Kurosaki"
+date: "2024-09-30"
+output: html_document
+---
+
+# setup
+
+```{r setup, include=FALSE}
+
+rm(list=ls()) # clean up
+library(knitr)
+library(plyr)
+library(car)
+library(reshape)
+library(reshape2)
+library(tidyr)
+library(effects)
+library(MASS)
+library(MuMIn)
+library(mgcv)
+library(mgcViz)
+library(sp)
+library(lme4)
+library(lattice)
+library(ggplot2)
+library(tibble)
+library(ggrepel)
+library(DHARMa)
+library(glmmTMB)
+library(ggeffects)
+library(ggpubr)
+library(here)
+opts_chunk$set(comment="  ",
+               collapse=TRUE, 
+               echo=FALSE,
+               fig.height = 10,
+               fig.width = 10,
+               dev="png",
+               warning=TRUE
+               )
+opts_knit$set(eval.after = "fig.cap") 
+```  
+
+# functions
+
+```{r functions}
+# create function for standard error
+se <- function(x){
+  sd(x, na.rm = TRUE)/sqrt(length(x))
+}
+
+```
+
+# Figure 1 - territory changes
+
+## read data and model
+```{r territory size, fig.height = 10, fig.width=10}
+territory_size <- read.csv(here("data", "damselfish_territory_measurements.csv"))
+
+#  get mean turf height
+territory_size$Mean.turf.height <- rowMeans(territory_size[ , c("Turf.height.1", "Turf.height.2","Turf.height.3", "Turf.height.4","Turf.height.5")], na.rm=TRUE)
+
+# get fish per m2
+territory_size$Fish.density <- territory_size$Total.Fish/territory_size$Territory.horizontal.area
+
+# removing extra rows from multiple fish sizes
+territory_size_cond <- ddply(territory_size, c("Date", "Pre.post.trt", "Territory", "Pair", "Total.Fish", "Fertilized", "Mean.turf.height"), numcolwise(mean), na.rm = TRUE ) 
+
+
+# Create datasets and correct names for percent change analyses
+before <- subset(territory_size_cond, Pre.post.trt == "Pre-fertilization")
+names(before)[names(before) == "Surface.area"] <- "Surface.area.before"
+names(before)[names(before) == "Territory.horizontal.area"] <- "Horizontal.area.before"
+names(before)[names(before) == "Mean.turf.height"] <-  "Mean.turf.height.before"
+names(before)[names(before) == "Total.Fish"] <-  "Total.fish.before"
+names(before)[names(before) == "Fish.density"] <- "Fish.density.before"
+
+after <-  subset(territory_size_cond ,Pre.post.trt == "Post-fertilization")
+names(after)[names(after) == "Surface.area"] <- "Surface.area.after"
+names(after)[names(after) == "Territory.horizontal.area"] <- "Horizontal.area.after"
+names(after)[names(after) == "Mean.turf.height"] <- "Mean.turf.height.after"
+names(after)[names(after) == "Total.Fish"] <- "Total.fish.after"
+names(after)[names(after) == "Fish.density"] <- "Fish.density.after"
+
+change <- merge(before, after, by = c("Territory", "Fertilized", "Pair") )
+
+change$Horizontal.pct.change <- (change$Horizontal.area.after - change$Horizontal.area.before)/change$Horizontal.area.before*100
+change$Surface.area.pct.change <- (change$Surface.area.after - change$Surface.area.before)/change$Surface.area.before*100
+change$Turf.height.pct.change <- (change$Mean.turf.height.after - change$Mean.turf.height.before)/change$Mean.turf.height.before*100
+change$Fish.change <- (change$Total.fish.after - change$Total.fish.before) # not doing percent change here yet because it feels weird
+change$Fish.pct.change <- (change$Total.fish.after - change$Total.fish.before)/change$Total.fish.before*100
+change$Fish.density.pct.change <- (change$Fish.density.after - change$Fish.density.before)/change$Fish.density.before*100
+
+# basic viz
+hist(change$Horizontal.pct.change)
+hist(change$Surface.area.pct.change) # both fairly normal
+hist(change$Turf.height.pct.change) # slightly skewed
+hist(change$Fish.change)
+hist(change$Fish.density.pct.change) # density pct change looks worse than number of fish gain/lost
+
+
+
+
+# mixed effect to test for spatial blocking (pair)
+changelmm  <- glmmTMB(Surface.area.pct.change ~ Fertilized + (1|Pair), data = change) 
+summary(changelmm)
+plot(simulateResiduals(changelmm)) # all good
+r.squaredGLMM(changelmm) # 0.16, 0.16
+Anova(changelmm) # Chi-sq = 5.83, P = 0.02
+
+# fish change
+fish.change.mod <- glmmTMB(Fish.pct.change ~ Fertilized + (1|Pair), data = change)
+plot(simulateResiduals(fish.change.mod)) # looks good
+summary(fish.change.mod) # large variance in pair random effect
+Anova(fish.change.mod) # Chi-sq = 0.14, P = 0.71
+
+plot(allEffects(fish.change.mod)) 
+
+## Territory plot
+(territory_plot <- ggplot(data = change, aes(x = Fertilized, y = Surface.area.pct.change) )+
+  geom_violin(lwd = 1.2, scale = "count",draw_quantiles = c(0.25, 0.5, 0.75), fill='#A4A4A4', alpha = 0.3) +
+  stat_summary(fun ='mean', geom='point', shape = 17, size=6, colour = "red") +
+  geom_jitter(width = 0.1, size = 3) +
+  scale_x_discrete(limits = c('N', 'Y'), name = "Treatment",
+                   labels = c("N" = "Unfertilized", "Y" = "Fertilized")) + 
+  scale_y_continuous(limits = c(-75, 60)) +
+  theme_classic() + 
+  labs(x ="Fertilized (Y/N)", y = "Percent Change \n", title = "a. Territory size\n") +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        legend.position = "none",
+        axis.line = element_line(colour = "black"),
+        plot.title = element_text(color = "grey20", size = 25, hjust = 0, vjust = 0, face = "plain"),
+        axis.text.x = element_text(color = "grey20", size = 20, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.x = element_text(color = "grey20", size = 25, hjust = .5, vjust = 0, face = "plain"),
+        axis.text.y = element_text(color = "grey20", size = 20, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.y = element_text(color = "grey20", size = 25, hjust = .5, vjust = 0, face = "plain")
+  ) +
+   geom_hline(yintercept=0, linetype = "dashed") +
+  annotate("text", x = 0.6, y = 50, label = "LMER\nChi-sq = 5.83, P = 0.016", hjust = 0, size = 10) )
+
+
+# fish change plot
+(fish_plot <- ggplot(data = change, aes(x = Fertilized, y = Fish.pct.change) )+
+  geom_violin(lwd = 1.2, scale = "count",draw_quantiles = c(0.25, 0.5, 0.75), fill='#A4A4A4', alpha = 0.3) +
+  stat_summary(fun ='mean', geom='point', shape = 17, size=6, colour = "red") +
+  geom_jitter(width = 0.1, size = 3) +
+  scale_x_discrete(limits = c('N', 'Y'), name = "Treatment",
+                   labels = c("N" = "Unfertilized", "Y" = "Fertilized")) + 
+  theme_classic() + 
+  labs(x ="Fertilized (Y/N)", y = "", title = "b. Resident fish\n") +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        legend.position = "none",
+        axis.line = element_line(colour = "black"),
+        plot.title = element_text(color = "grey20", size = 25, hjust = 0, vjust = 0, face = "plain"),
+        axis.text.x = element_text(color = "grey20", size = 20, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.x = element_text(color = "grey20", size = 25, hjust = .5, vjust = 0, face = "plain"),
+        axis.text.y = element_text(color = "grey20", size = 20, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.y = element_text(color = "grey20", size = 25, hjust = .5, vjust = 0, face = "plain")
+  ) +
+   geom_hline(yintercept=0, linetype = "dashed") +
+  annotate("text", x = 0.6, y = 185, label = "LMER\nChi-sq = 0.14, P = 0.711", hjust = 0, size = 10) )
+```
+## create panel graph
+```{r territory characteristics panel, fig.height=10, fig.width=18}
+ggpubr::ggarrange(territory_plot, fish_plot, nrow = 1, widths = c(1,1))
+```
+
+# Figure 2 - fish behaviors
+
+# read and format behavior data
+```{r damselfish behavior}
+behavior <- read.csv(here("data", "damselfish_video_data.csv"))
+str(behavior)
+
+## CREATE NEW COLUMNS
+
+# total chases and total chase rate
+behavior$Total.chase <- behavior$Inter.chases + behavior$Intra.chases
+behavior$Total.chase.rate <- (behavior$Total.chase)/(behavior$Time.guarding/60)
+
+# bites per area
+behavior$Bite.rate.per.m2 <- behavior$Bite.rate/behavior$Surface.area
+
+# chases per area
+behavior$Intra.chase.rate.per.m2 <- behavior$Intra.chase.rate/behavior$Surface.area
+behavior$Inter.chase.rate.per.m2 <- behavior$Inter.chase.rate/behavior$Surface.area
+behavior$Total.chase.rate.per.m2 <- behavior$Total.chase.rate/behavior$Surface.area
+
+# converting time to minutes for offsets in poisson and negative binomial
+behavior$Video.view.time.min <- behavior$Video.view.time/60
+behavior$Time.guarding.min <- behavior$Time.guarding/60
+behavior$Time.per.area <- behavior$Time.guarding.min*behavior$Surface.area # for double offset
+
+
+# specify territory and time period for repeated measures
+behavior$Territory.time <- as.factor(paste(behavior$Territory, "-", behavior$Pre.post.trt))
+
+# for other fish bites
+otherbites <-  ddply(behavior, c("Territory", "Pair", "Fertilized", "Pre.post.trt",  "Surface.area", "Video.view.time", "Video.view.time.min"), numcolwise(sum), na.rm = TRUE )
+otherbites$Other.fish.bites.rate <-  otherbites$Other.fish.bites/otherbites$Video.view.time
+otherbites$Other.fish.bites.rate.per.m2 <- otherbites$Other.fish.bites.rate/otherbites$Surface.area
+otherbites$log.other.fish.bite.rate <- log(otherbites$Other.fish.bites.rate + 1)
+otherbites$log.other.fish.bite.rate.per.m2 <- log(otherbites$Other.fish.bites.rate.per.m2 + 1)
+otherbites$Time.per.area <- otherbites$Video.view.time.min*otherbites$Surface.area
+
+
+
+# For graphs
+behavior_means <- ddply(behavior, c("Fertilized", "Pre.post.trt"), numcolwise(mean), na.rm = TRUE )
+behavior_se <-  ddply(behavior, c("Fertilized", "Pre.post.trt"), numcolwise(se))
+behavior_means$Bite.rate.per.m2_se <- behavior_se$Bite.rate.per.m2
+behavior_means$Inter.chase.rate.per.m2_se <- behavior_se$Inter.chase.rate.per.m2
+behavior_means$Intra.chase.rate.per.m2_se <- behavior_se$Intra.chase.rate.per.m2
+
+otherbites_means <- ddply(otherbites, c("Fertilized", "Pre.post.trt"), numcolwise(mean), na.rm = TRUE )
+otherbites_se <- ddply(otherbites, c("Fertilized", "Pre.post.trt"), numcolwise(se))
+otherbites_means$Other.fish.bites.rate.per.m2_se <- otherbites_se$Other.fish.bites.rate.per.m2
+
+
+# For potential zi models
+behavior_v2 <- base::transform(behavior, Treatment=as.numeric(Fertilized=="N")) # set unfertilized to intercept for zi models when necessary
+otherbites_v2 <- base::transform(otherbites, Treatment=as.numeric(Fertilized=="N")) # set unfertilized to intercept for zi model if necessary
+```
+
+```{r bite rate models}
+
+with(behavior_v2,table(Pre.post.trt, Fertilized,Bites==0)) # all vids have bites
+
+# poisson
+bite_mod_1 <- glmmTMB(Bites ~ Pre.post.trt*Fertilized + (1|Pair/Territory) + offset(log(Time.per.area)), family = poisson, data = behavior )
+# same issues as always with offset and BACI design in Quantile test
+# quantile test returns significant result when modeled with log offset
+# does not return reslut when using Bite rate data instead w/ Gamma, and returns identical results
+plot(simulateResiduals(bite_mod_1 )) 
+# Very obviously due to log offset
+plotResiduals(simulateResiduals(bite_mod_1), form =  behavior_v2$Fertilized)
+plotResiduals(simulateResiduals(bite_mod_1), form = behavior_v2$Pre.post.trt) # no issues with either factor 
+testDispersion(simulateResiduals(bite_mod_1)) # poisson not overdispersed
+
+# negative binomial
+bite_mod_2 <- glmmTMB(Bites ~ Pre.post.trt*Fertilized + (1|Pair/Territory) + offset(log(Time.per.area)), family = nbinom2, data = behavior )
+plot(simulateResiduals(bite_mod_2 )) # issues from log offset but otherwise fine
+plotResiduals(simulateResiduals(bite_mod_2), form =  behavior_v2$Fertilized)
+plotResiduals(simulateResiduals(bite_mod_2), form = behavior_v2$Pre.post.trt) # no issues with either factor 
+
+AICc(bite_mod_1, bite_mod_2) # nb much better
+
+# example of different approach
+bites_m2 <- glmmTMB(log(Bite.rate.per.m2 + 1) ~ Pre.post.trt*Fertilized + (1|Pair/Territory), data = behavior )
+plot(simulateResiduals(bites_m2)) #  and model issues go away when using long transformed data
+summary(bites_m2)
+Anova(bites_m2) # results almost identical
+#                           Chisq Df Pr(>Chisq)    
+# Pre.post.trt            21.6015  1  3.356e-06 ***
+# Fertilized               1.2712  1     0.2595    
+# Pre.post.trt:Fertilized 23.6445  1  1.159e-06 ***
+
+
+## MOVING FORWARD WITH NB OFFSET MODEL BECAUSE IT IS MATHEMATICALLY CORRECT
+
+summary(bite_mod_2)
+Anova(bite_mod_2) # sig interaction b/w fertilized and before/after (as expected)
+#                           Chisq Df Pr(>Chisq)    
+# Pre.post.trt            16.5238  1  4.804e-05 ***
+# Fertilized               1.0736  1     0.3001    
+# Pre.post.trt:Fertilized 19.0098  1  1.301e-05 ***
+r.squaredGLMM(bite_mod_2) # 0.13, 0.72
+plot(allEffects(bite_mod_2)) # grazing rate increases after fertilizer added
+
+emmeans::emmeans(bite_mod_2, pairwise ~ Pre.post.trt | Fertilized) 
+# Fertilized = N:
+#  contrast                                   estimate    SE  df z.ratio p.value
+#  (Post-fertilization) - (Pre-fertilization)  -0.0242 0.116 Inf  -0.210  0.8340
+# 
+# Fertilized = Y:
+#  contrast                                   estimate    SE  df z.ratio p.value
+#  (Post-fertilization) - (Pre-fertilization)   0.6879 0.115 Inf   5.957  <.0001
+
+emmeans::emmeans(bite_mod_2, pairwise ~ Fertilized | Pre.post.trt) # And bite rate is sig higher on fertilized plots after treatment
+# $contrasts
+# Pre.post.trt = Post-fertilization:
+#  contrast estimate    SE  df z.ratio p.value
+#  N - Y     -0.6270 0.241 Inf  -2.602  0.0093
+# 
+# Pre.post.trt = Pre-fertilization:
+#  contrast estimate    SE  df z.ratio p.value
+#  N - Y      0.0851 0.235 Inf   0.363  0.7168
+
+behavior_means$Bite.rate.letters <- c("a", "a", "b", "a")
+behavior_means$Bite.rate.letter.height <- behavior_means$Bite.rate.per.m2 + behavior_means$Bite.rate.per.m2_se + 0.02
+
+```
+
+```{r bite rate graph, fig.height=10, fig.width=10}
+(bite_rate_graph <- ggplot()+
+  geom_point(data = behavior_means, aes(x = Pre.post.trt, y = Bite.rate.per.m2, colour = Fertilized),
+             size = 6, position = position_dodge(width = 0.2)) +
+  geom_errorbar(data = behavior_means, aes(x = Pre.post.trt, ymin = Bite.rate.per.m2 - Bite.rate.per.m2_se,
+                                           ymax = Bite.rate.per.m2 + Bite.rate.per.m2_se, colour = Fertilized),
+             size = 0.6, position = position_dodge(width = 0.2), width = 0.15) +
+  geom_line(data = behavior_means, aes(x= Pre.post.trt, y = Bite.rate.per.m2, group = Fertilized, colour = Fertilized),
+            size = 1, position = position_dodge(width = 0.2)) + # add lines
+  scale_x_discrete(limits = c("Pre-fertilization", "Post-fertilization"), labels = c("Day 0", "Day 14")) +
+  geom_text(aes(x = 0.5, y = 0.84,
+                label = "Time-point: P < 0.001\nTreatment: P = 0.300\nTime-point x Treatment:  P < 0.001"),
+            hjust = 0, size = 8) + 
+  geom_text(data = behavior_means, aes(x = Pre.post.trt, y = Bite.rate.letter.height, colour = Fertilized,
+                                       label = Bite.rate.letters),
+            size = 8, position = position_dodge(width = 0.2), show.legend = FALSE) +
+
+  labs(y = bquote("Bites min"^ -1*" m"^ -2*""~"\n"), x = "", title = "a. Damselfish bite rate\n", x = "") +
+  scale_colour_discrete(name = "Treatment", labels = c("Unfertilized", "Fertilized") ) +
+  scale_fill_discrete(name = "Treatment", labels = c("Unfertilized", "Fertilized") ) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        plot.title = element_text(color = "grey20", size = 32, vjust = 0, face = "plain"),
+        axis.line.y = element_line(colour = "black"),
+        axis.text.y = element_text(color = "grey20", size = 28, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.y = element_text(color = "grey20", size = 32, hjust = .5, vjust = 0, face = "plain"),
+        axis.line.x = element_line(colour = "black"),
+        axis.text.x = element_text(color = "grey20", size = 28, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.x = element_text(color = "grey20", size = 32, hjust = .5, vjust = 0, face = "plain"),
+        legend.key.size = unit(2, "cm"), # increase legend size
+        legend.text = element_text(size = 28), # increase legend text
+        legend.title = element_text(size = 32),
+        legend.position = 'bottom', # move legend to bottom
+        legend.box = 'horizontal',
+        legend.box.background = element_rect(colour = "black") # make legend horizontal
+   ) +
+    geom_segment(aes(x = 2.25, y = 0.4424724, xend = 2.25, yend = 0.7818773)) +
+    geom_segment(aes(x = 2.22, y = 0.7818773, xend = 2.25, yend = 0.7818773)) +
+    geom_segment(aes(x = 2.22, y = 0.4424724, xend = 2.25, yend = 0.4424724)) +
+    annotate("text", x = 2.4, y = 0.6121748, label = "**", vjust = 0.5, size = 12))
+
+```
+
+
+```{r area and timeotherbites repeat measures}
+hist(otherbites$Other.fish.bites) # probably negative binomial or zi
+with(otherbites,table(Pre.post.trt, Fertilized,Other.fish.bites==0)) # looks like more 0s in unfertilized
+
+
+# model selection
+
+# zero inflation based on treatment
+otherbites_mod_1 <- glmmTMB(Other.fish.bites ~ Pre.post.trt*Fertilized + (1|Pair/Territory) + offset(log(Time.per.area)), family = nbinom2, ziformula = ~Treatment, data = otherbites_v2)
+plot(simulateResiduals(otherbites_mod_1))
+
+# zero inflated intercept
+otherbites_mod_2 <- glmmTMB(Other.fish.bites ~ Pre.post.trt*Fertilized + (1|Pair/Territory) + offset(log(Time.per.area)), family = nbinom2, ziformula = ~1, data = otherbites_v2)
+plot(simulateResiduals(otherbites_mod_2))
+
+# no zero inflation
+otherbites_mod_3 <- glmmTMB(Other.fish.bites ~ Pre.post.trt*Fertilized + (1|Pair/Territory) + offset(log(Time.per.area)), family = nbinom2,  data = otherbites_v2)
+plot(simulateResiduals(otherbites_mod_3))
+
+## All models have no real problems outside of standard issues with quantile deviations
+
+# model selection
+AICc(otherbites_mod_1, otherbites_mod_2, otherbites_mod_3) # zero inflated intercept best
+
+plotQQunif(ob_res <- simulateResiduals(otherbites_mod_2)) # looks good
+plotResiduals(ob_res, otherbites_v2$Pre.post.trt)
+plotResiduals(ob_res, otherbites_v2$Fertilized) # no issues - all problems from offset
+
+summary(otherbites_mod_2) # sig more likely to observe 0s than not
+# Zero-inflation model:
+#             Estimate Std. Error z value Pr(>|z|)    
+# (Intercept)  -1.5786     0.4282  -3.686 0.000228 ***
+
+Anova(otherbites_mod_2) # sig interaction
+#                          Chisq Df Pr(>Chisq)  
+# Pre.post.trt            1.6132  1    0.20404  
+# Fertilized              1.3034  1    0.25360  
+# Pre.post.trt:Fertilized 3.9457  1    0.04699 *
+
+emmeans::emmeans(otherbites_mod_2, pairwise ~ Pre.post.trt | Fertilized) # sig increase in bites for fertilized plots
+# $contrasts
+# Fertilized = N:
+#  contrast                                   estimate    SE  df z.ratio p.value
+#  (Post-fertilization) - (Pre-fertilization)   -0.298 0.447 Inf  -0.666  0.5055
+# 
+# Fertilized = Y:
+#  contrast                                   estimate    SE  df z.ratio p.value
+#  (Post-fertilization) - (Pre-fertilization)    0.924 0.404 Inf   2.288  0.0222
+
+emmeans::emmeans(otherbites_mod_2, pairwise ~ Fertilized | Pre.post.trt) # no sig difference in bites for either timepoint bw trt
+# $contrasts
+# Pre.post.trt = Post-fertilization:
+#  contrast estimate    SE  df z.ratio p.value
+#  N - Y      -0.870 0.465 Inf  -1.870  0.0615
+# 
+# Pre.post.trt = Pre-fertilization:
+#  contrast estimate    SE  df z.ratio p.value
+#  N - Y       0.352 0.596 Inf   0.591  0.5544
+
+
+otherbites_means$Letters <- c("a", "a", "b", "a")
+otherbites_means$Letter.height <- otherbites_means$Other.fish.bites.rate.per.m2 + otherbites_means$Other.fish.bites.rate.per.m2_se + 0.00022
+```
+
+```{r other bites graph, fig.height= 10, fig.width=10}
+
+(otherbite_rate_graph <- ggplot()+
+  geom_point(data = otherbites_means, aes(x = Pre.post.trt, y = Other.fish.bites.rate.per.m2, colour = Fertilized),
+             size = 6, position = position_dodge(width = 0.2)) +
+  geom_errorbar(data = otherbites_means, aes(x = Pre.post.trt, ymin = Other.fish.bites.rate.per.m2 - Other.fish.bites.rate.per.m2_se,
+                                           ymax = Other.fish.bites.rate.per.m2 + Other.fish.bites.rate.per.m2_se, colour = Fertilized),
+             size = 0.6, position = position_dodge(width = 0.2), width = 0.15) +
+  geom_line(data = otherbites_means, aes(x= Pre.post.trt, y = Other.fish.bites.rate.per.m2, group = Fertilized, colour = Fertilized),
+            size = 1, position = position_dodge(width = 0.2)) + # add lines
+  scale_x_discrete(limits = c("Pre-fertilization", "Post-fertilization"), labels = c("Day 0", "Day 14")) +
+  geom_text(aes(x = 0.5, y = 0.0055,
+                label = "Time-point: P = 0.204\nTreatment: P = 0.253\nTime-point x Treatment:  P = 0.046"),
+            hjust = 0, size = 8) + 
+  geom_text(data = otherbites_means, aes(x = Pre.post.trt, y = Letter.height, colour = Fertilized,
+                                       label = Letters),
+            size = 8, position = position_dodge(width = 0.2), show.legend = FALSE) +
+  scale_y_continuous(limits = c(0, 0.006)) +
+  scale_colour_discrete(name = "Treatment", labels = c("Unfertilized", "Fertilized") ) +
+  scale_fill_discrete(name = "Treatment", labels = c("Unfertilized", "Fertilized") ) +
+  labs(y = bquote("Bites min"^ -1*" m"^ -2*""~"\n"), x = "", title = "b. Other fish bite rate\n", x = "") +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        plot.title = element_text(color = "grey20", size = 32, vjust = 0, face = "plain"),
+        axis.line.y = element_line(colour = "black"),
+        axis.text.y = element_text(color = "grey20", size = 28, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.y = element_text(color = "grey20", size = 32, hjust = .5, vjust = 0, face = "plain"),
+        axis.line.x = element_line(colour = "black"),
+        axis.text.x = element_text(color = "grey20", size = 28, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.x = element_text(color = "grey20", size = 32, hjust = .5, vjust = 0, face = "plain"),
+        legend.key.size = unit(2, "cm"), # increase legend size
+        legend.text = element_text(size = 28 ), # increase legend text
+        legend.title = element_text(size = 32),
+        legend.position = 'bottom', # move legend to bottom
+        legend.box = 'horizontal',
+        legend.box.background = element_rect(colour = "black") # make legend horizontal
+   ))
+```
+
+
+```{r area and time conpecific chase}
+
+sum(behavior_v2$Intra.chases==0) # 11 0s, might be worth exploring zi
+with(behavior_v2,table(Pre.post.trt, Fertilized,Intra.chases==0)) # more 0s in fertilized
+hist(behavior_v2$Intra.chases, breaks = 20) # looks like poisson might work w/ zi
+
+# treatment zi
+intrachase_mod_1 <- glmmTMB(Intra.chases ~ Pre.post.trt*Fertilized + (1|Pair/Territory) + offset(log(Time.per.area)),family = poisson, ziformula = ~ Treatment, data = behavior_v2) 
+plot(simulateResiduals(intrachase_mod_1)) # no real issues
+
+# zi intercept
+intrachase_mod_2 <- glmmTMB(Intra.chases ~ Pre.post.trt*Fertilized + (1|Pair/Territory) + offset(log(Time.per.area)),family = poisson, ziformula = ~ 1, data = behavior_v2) 
+plot(simulateResiduals(intrachase_mod_2)) # no real issues
+
+# poisson no zi
+intrachase_mod_3 <- glmmTMB(Intra.chases ~ Pre.post.trt*Fertilized + (1|Pair/Territory) + offset(log(Time.per.area)),family = poisson, data = behavior_v2)
+plot(simulateResiduals(intrachase_mod_3)) # no real issues
+
+AICc(intrachase_mod_1, intrachase_mod_2, intrachase_mod_3) # best model is no zi
+plotQQunif(cs_res <- simulateResiduals(intrachase_mod_3)) # normal residuals
+plotResiduals(cs_res, form = behavior$Fertilized, asFactor = T)
+plotResiduals(cs_res, form = behavior$Pre.post.trt) # no issues with either predictor
+
+summary(intrachase_mod_3)
+
+Anova(intrachase_mod_3) 
+#                          Chisq Df Pr(>Chisq)   
+# Pre.post.trt            10.323  1   0.001314 **
+# Fertilized               0.005  1   0.943363   
+# Pre.post.trt:Fertilized 10.767  1   0.001033 **
+
+emmeans::emmeans(intrachase_mod_3, pairwise ~ Pre.post.trt | Fertilized) # Sig DECREASE in chases for fertilized plots
+# Fertilized = N:
+#  contrast                                   estimate    SE  df z.ratio p.value
+#  (Post-fertilization) - (Pre-fertilization)  -0.0369 0.121 Inf  -0.307  0.7592
+# 
+# Fertilized = Y:
+#  contrast                                   estimate    SE  df z.ratio p.value
+#  (Post-fertilization) - (Pre-fertilization)  -0.6449 0.141 Inf  -4.582  <.0001
+
+emmeans::emmeans(intrachase_mod_3, pairwise ~ Fertilized | Pre.post.trt) # no sig difference in bites for either timepoint bw trt
+# $contrasts
+# Pre.post.trt = Post-fertilization:
+#  contrast estimate    SE  df z.ratio p.value
+#  N - Y       0.404 0.331 Inf   1.221  0.2220
+# 
+# Pre.post.trt = Pre-fertilization:
+#  contrast estimate    SE  df z.ratio p.value
+#  N - Y      -0.204 0.309 Inf  -0.659  0.5102
+
+
+
+behavior_means$Intra.chase.letters <- c("a", "a", "b", "a")
+behavior_means$Intra.chase.letter.height <- behavior_means$Intra.chase.rate.per.m2 + behavior_means$Intra.chase.rate.per.m2_se + 0.01
+
+```
+
+```{r intraspecific chases, fig.height=10, fig.width=10}
+(intra_chase_rate_graph <- ggplot()+
+  geom_point(data = behavior_means, aes(x = Pre.post.trt, y = Intra.chase.rate.per.m2, colour = Fertilized),
+             size = 6, position = position_dodge(width = 0.2)) +
+  geom_errorbar(data = behavior_means, aes(x = Pre.post.trt, ymin = Intra.chase.rate.per.m2 - Intra.chase.rate.per.m2_se,
+                                           ymax = Intra.chase.rate.per.m2 + Intra.chase.rate.per.m2_se, colour = Fertilized),
+             size = 0.6, position = position_dodge(width = 0.2), width = 0.15) +
+  geom_line(data = behavior_means, aes(x= Pre.post.trt, y = Intra.chase.rate.per.m2, group = Fertilized, colour = Fertilized),
+            size = 1, position = position_dodge(width = 0.2)) + # add lines
+  scale_x_discrete(limits = c("Pre-fertilization", "Post-fertilization"), labels = c("Day 0", "Day 14")) +
+   scale_y_continuous(limits = c(0,0.18))+
+  geom_text(aes(x = 0.5, y = 0.165,
+                label = "Time-point: P = 0.001\nTreatment: P = 0.943\nTime-point x Treatment:  P = 0.001"),
+            hjust = 0, size = 8) + 
+  geom_text(data = behavior_means, aes(x = Pre.post.trt, y = Intra.chase.letter.height, colour = Fertilized,
+                                       label = Intra.chase.letters),
+            size = 8, position = position_dodge(width = 0.2), show.legend = FALSE) +
+
+  scale_colour_discrete(name = "Treatment", labels = c("Unfertilized", "Fertilized") ) +
+  scale_fill_discrete(name = "Treatment", labels = c("Unfertilized", "Fertilized") ) +
+  labs(y = bquote("Chases min"^ -1*" m"^ -2*""~"\n"), x = "", title = "c. Conspecific chases\n", x = "") +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        plot.title = element_text(color = "grey20", size = 32, vjust = 0, face = "plain"),
+        axis.line.y = element_line(colour = "black"),
+        axis.text.y = element_text(color = "grey20", size = 28, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.y = element_text(color = "grey20", size = 32, hjust = .5, vjust = 0, face = "plain"),
+        axis.line.x = element_line(colour = "black"),
+        axis.text.x = element_text(color = "grey20", size = 28, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.x = element_text(color = "grey20", size = 32, hjust = .5, vjust = 0, face = "plain"),
+        legend.key.size = unit(2, "cm"), # increase legend size
+        legend.text = element_text(size = 28), # increase legend text
+        legend.title = element_text(size = 32),
+        legend.position = 'bottom', # move legend to bottom
+        legend.box = 'horizontal',
+        legend.box.background = element_rect(colour = "black") # make legend horizontal
+   ))
+
+```
+
+
+
+```{r area and timeinterspecific chases}
+
+with(behavior_v2,table(Pre.post.trt, Fertilized,Inter.chases==0)) # probably not zi
+hist(behavior_v2$Inter.chases, breaks = 20) # gonna try poisson vs poisson w/ zi intercept
+
+# poisson
+interchase_mod_1 <- glmmTMB(Inter.chases ~ Pre.post.trt*Fertilized + (1|Pair/Territory) + offset(log(Time.per.area)), family = poisson, data = behavior_v2 )
+plot(simulateResiduals(interchase_mod_1)) # no real issues
+
+
+interchase_mod_2 <- glmmTMB(Inter.chases ~ Pre.post.trt*Fertilized + (1|Pair/Territory) + offset(log(Time.per.area)), family = poisson, ziformula = ~1, data = behavior_v2 )
+plot(simulateResiduals(interchase_mod_2))
+
+interchase_mod_3 <- glmmTMB(Inter.chases ~ Pre.post.trt*Fertilized + (1|Pair/Territory) + offset(log(Time.per.area)), family = poisson, ziformula = ~Treatment, data = behavior_v2 ) # doesn't converge with Treatment as zi, which makes sense to me
+
+
+AICc(interchase_mod_1, interchase_mod_2, interchase_mod_3) # almost identical but zi intercept slightly better...
+
+
+plotQQunif(hs_res <- simulateResiduals(interchase_mod_2)) # normal residuals
+plotResiduals(hs_res, form = behavior$Fertilized, asFactor = T)
+plotResiduals(hs_res, form = behavior$Pre.post.trt) # no issues with either predictor
+
+summary(interchase_mod_2)
+# Zero-inflation model:
+#             Estimate Std. Error z value Pr(>|z|)    
+# (Intercept)  -3.8488     0.8323  -4.624 3.76e-06 ***
+
+Anova(interchase_mod_2) # Significant BACI effect
+#                          Chisq Df Pr(>Chisq)  
+# Pre.post.trt            0.0027  1    0.95848  
+# Fertilized              1.0184  1    0.31291  
+# Pre.post.trt:Fertilized 5.9359  1    0.01484 *
+
+r.squaredGLMM(interchase_mod_2) # .05, .72
+plot(allEffects(interchase_mod_2))
+
+emmeans::emmeans(interchase_mod_2, pairwise ~ Pre.post.trt | Fertilized)
+# $contrasts
+# Fertilized = N:
+#  contrast                                   estimate    SE  df z.ratio p.value
+#  (Post-fertilization) - (Pre-fertilization)   -0.268 0.146 Inf  -1.840  0.0658
+# 
+# Fertilized = Y:
+#  contrast                                   estimate    SE  df z.ratio p.value
+#  (Post-fertilization) - (Pre-fertilization)    0.211 0.132 Inf   1.596  0.1105
+
+emmeans::emmeans(interchase_mod_2, pairwise ~ Fertilized | Pre.post.trt)
+# $contrasts
+# Pre.post.trt = Post-fertilization:
+#  contrast estimate    SE  df z.ratio p.value
+#  N - Y     -0.5740 0.303 Inf  -1.894  0.0582
+# 
+# Pre.post.trt = Pre-fertilization:
+#  contrast estimate    SE  df z.ratio p.value
+#  N - Y     -0.0954 0.288 Inf  -0.331  0.7406
+
+# so despite significant interaction, none of the within factor pairwise comparisons are significant
+# General trend is that chases increase in fertilized plots, and this is BARELY non significant
+
+
+
+
+
+```
+
+```{r inter chase rate graph, fig.height=10, fig.width=10}
+(inter_chase_rate_graph <- ggplot()+
+  geom_point(data = behavior_means, aes(x = Pre.post.trt, y = Inter.chase.rate.per.m2, colour = Fertilized),
+             size = 6, position = position_dodge(width = 0.2)) +
+  geom_errorbar(data = behavior_means, aes(x = Pre.post.trt, ymin = Inter.chase.rate.per.m2 - Inter.chase.rate.per.m2_se,
+                                           ymax = Inter.chase.rate.per.m2 + Inter.chase.rate.per.m2_se, colour = Fertilized),
+             size = 0.6, position = position_dodge(width = 0.2), width = 0.15) +
+  geom_line(data = behavior_means, aes(x= Pre.post.trt, y = Inter.chase.rate.per.m2, group = Fertilized, colour = Fertilized),
+            size = 1, position = position_dodge(width = 0.2)) + # add lines
+  scale_x_discrete(limits = c("Pre-fertilization", "Post-fertilization"), labels = c("Day 0", "Day 14")) +
+  scale_y_continuous(limits = c(0,0.12))+
+  geom_text(aes(x = 0.5, y = 0.11,
+                label = "Time-point: P = 0.958\nTreatment: P = 0.313\nTime-point x Treatment:  P = 0.015"),
+            hjust = 0, size = 8) + 
+  labs(y = bquote("Chases min"^ -1*" m"^ -2*""~"\n"), x = "", title = "d. Heterospecific chases\n", x = "") +
+    scale_colour_discrete(name = "Treatment", labels = c("Unfertilized", "Fertilized") ) +
+  scale_fill_discrete(name = "Treatment", labels = c("Unfertilized", "Fertilized") ) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        plot.title = element_text(color = "grey20", size = 32, vjust = 0, face = "plain"),
+        axis.line.y = element_line(colour = "black"),
+        axis.text.y = element_text(color = "grey20", size = 28, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.y = element_text(color = "grey20", size = 32, hjust = .5, vjust = 0, face = "plain"),
+        axis.line.x = element_line(colour = "black"),
+        axis.text.x = element_text(color = "grey20", size = 28, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.x = element_text(color = "grey20", size = 32, hjust = .5, vjust = 0, face = "plain"),
+        legend.key.size = unit(2, "cm"), # increase legend size
+        legend.text = element_text(size = 28), # increase legend text
+        legend.title = element_text(size = 32),
+        legend.position = 'bottom', # move legend to bottom
+        legend.box = 'horizontal',
+        legend.box.background = element_rect(colour = "black") # make legend horizontal
+   ))
+```
+
+```{r panel graph, fig.height=15, fig.width=18}
+ggpubr::ggarrange(bite_rate_graph, otherbite_rate_graph, intra_chase_rate_graph, inter_chase_rate_graph, 
+          ncol=2, nrow=2, widths = c(1,1), heights = c(1,1), common.legend = TRUE,
+          legend="bottom", legend.grob = ggpubr::get_legend(inter_chase_rate_graph)) 
+
+```
+
+# Figure 3 - turf biomass and nitrogen content
+
+## biomass data and model
+```{r turf biomass, fig.height = 10, fig.width=10}
+bio <- read.csv(here("data","damselfish_turf_biomass.csv"))
+str(bio)
+bio$Territory <- as.factor(bio$Territory)
+bio$Biomass.per.cm2 <- bio$Biomass/bio$Area
+bio$Territory.time <- as.factor(paste(bio$Territory, "-", bio$Pre.post.trt))
+
+# model
+biomass_mod <- glmmTMB(Biomass ~ Pre.post.trt*Fertilized + offset(log(Area)) + (1|Pair/Territory) , family = Gamma(link = "log"), data = bio)
+plot(simulateResiduals(biomass_mod)) # issues in QQ residuals test, but these go away when I replace offset with Biommas per cm2
+# not sure what is causing them specifically other than including the offset
+# results are identical between using Biomass.per.cm2 and the offset model, so will continue on with offset
+summary(biomass_mod)
+Anova(biomass_mod)
+#                           Chisq Df Pr(>Chisq)    
+# Pre.post.trt            20.5707  1  5.747e-06 ***
+# Fertilized               3.8924  1    0.04851 *  
+# Pre.post.trt:Fertilized  1.9607  1    0.16144    
+
+
+emmeans::emmeans(biomass_mod, pairwise ~ Pre.post.trt | Fertilized) 
+# $contrasts
+# Pre.post.trt = Post-fertilization:
+#  contrast estimate    SE  df z.ratio p.value
+#  N - Y      -0.408 0.169 Inf  -2.415  0.0157
+# 
+# Pre.post.trt = Pre-fertilization:
+#  contrast estimate    SE  df z.ratio p.value
+#  N - Y      -0.115 0.167 Inf  -0.689  0.4907
+
+emmeans::emmeans(biomass_mod, pairwise ~ Fertilized | Pre.post.trt) # and post treatment fertilized trt have significantly greater biomass
+# $contrasts
+# Pre.post.trt = Post-fertilization:
+#  contrast estimate    SE  df z.ratio p.value
+#  N - Y      -0.408 0.169 Inf  -2.415  0.0157
+# 
+# Pre.post.trt = Pre-fertilization:
+#  contrast estimate    SE  df z.ratio p.value
+#  N - Y      -0.115 0.167 Inf  -0.689  0.4907
+
+plot(allEffects(biomass_mod))
+r.squaredGLMM(biomass_mod) # 0.13, 0.26
+
+#### NOTE: DID A RUN CONDENSING THE TRIPLICATES. RESULTS WERE BASICALLY THE SAME
+
+
+# create df for plotting
+bio_graph <- ddply(bio, c("Fertilized", "Pre.post.trt"), numcolwise(mean), na.rm = TRUE ) 
+bio_graph_se <- ddply(bio, c("Fertilized", "Pre.post.trt"), numcolwise(se))
+bio_graph <- cbind(bio_graph, dplyr::select(bio_graph_se, c("Biomass.per.cm2")) ) # add SE for biomass and pct organic
+colnames(bio_graph)[ncol(bio_graph)] <- c("Biomass.per.cm2.SE") # change column names
+bio_graph$Letters <- c("b", "a", "b", "a")
+bio_graph$Letter_height <- bio_graph$Biomass.per.cm2 + bio_graph$Biomass.per.cm2.SE + 0.001
+
+
+(bio_plot <- ggplot() + 
+
+  geom_point(data = bio_graph, aes(x= Pre.post.trt, y = Biomass.per.cm2, fill = Fertilized, 
+             colour = Fertilized), shape = 23, size = 8, position = position_dodge(width = 0.2)) + # add points for mean
+  geom_line(data = bio_graph, aes(x= Pre.post.trt, y = Biomass.per.cm2, group = Fertilized, colour = Fertilized),
+            size = 2, position = position_dodge(width = 0.2)) + # add lines
+  geom_errorbar(data = bio_graph, aes(x = Pre.post.trt, ymin=Biomass.per.cm2 - Biomass.per.cm2.SE,
+                ymax=Biomass.per.cm2 + Biomass.per.cm2.SE, colour = Fertilized), width=.15,
+                position = position_dodge(width = 0.2)) +
+  geom_text(data = bio_graph, aes(x = Pre.post.trt, y = Letter_height, colour = Fertilized, label = Letters),
+            size = 8, position = position_dodge(width = 0.2), show.legend = FALSE) +
+
+  theme_classic() + 
+  scale_x_discrete(limits = c("Pre-fertilization", "Post-fertilization"),
+                   labels = c("Day 0", "Day 14")) +
+  scale_colour_discrete(labels = c("Unfertilized", "Fertilized") ) +
+  scale_fill_discrete(labels = c("Unfertilized", "Fertilized") ) +
+  labs(x ="Timepoint", 
+       y = bquote("Biomass (g cm"^ -2*")"~"\n"),
+       title= "a. Turf biomass\n", color = "Treatment", fill = "Treatment") + # label axes
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.line = element_line(colour = "black"),
+        plot.title = element_text(color = "grey20", size = 25, hjust = 0, vjust = 0, face = "plain"),
+        axis.text.x = element_text(color = "grey20", size = 20, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.x = element_text(color = "grey20", size = 25, hjust = .5, vjust = 0, face = "plain"),
+        axis.text.y = element_text(color = "grey20", size = 20, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.y = element_text(color = "grey20", size = 25, hjust = .5, vjust = 0, face = "plain"),
+        legend.key.size = unit(2, "cm"), # increase legend size
+        legend.text = element_text(size = 20), # increase legend text
+        legend.title = element_text(size = 25),
+        legend.position = 'bottom', # move legend to bottom
+        legend.box = 'horizontal',
+        legend.box.background = element_rect(colour = "black") # make legend horizontal
+  ) +
+    annotate("text", x = 0.5, y = 0.04, label = "Timepoint: P <0.0001\nTreatment: P = 0.048\nTimepoint x Treatment: P = 0.161",
+             hjust = 0, size = 8) +
+    geom_segment(aes(x = 2.25, y = 0.01919681, xend = 2.25, yend = 0.03276647)) +
+    geom_segment(aes(x = 2.22, y = 0.01919681, xend = 2.25, yend = 0.01919681)) +
+    geom_segment(aes(x = 2.22, y = 0.03276647, xend = 2.25, yend = 0.03276647)) +
+    annotate("text", x = 2.3, y = 0.02598164, label = "*", vjust = 0.5, size = 12))
+
+
+
+```
+## nitrogen data
+```{r nitrogen}
+comb_N <- read.csv(here("data", "damselfish_turf_nitrogen.csv"), stringsAsFactors = T)
+
+# if we want to go pct N
+comb_N$pct.N <- ((comb_N$umol.N/10^6)*14.0067*10^3)/comb_N$mass.pelletized..mg.*100
+str(comb_N)
+
+# basic viz
+hist(comb_N$pct.N) # almost certainly no difference here
+hist(comb_N$C.N) # same here
+
+
+cn.mod <- glmmTMB(C.N ~ Fertilized + (1|Pair), family = Gamma("log"), data = comb_N)
+plot(cn.res <- simulateResiduals(cn.mod)) # no issues
+summary(cn.mod) # actually a fair bit of spatial variance
+r.squaredGLMM(cn.mod) # 0.03, 0.51
+Anova(cn.mod) # Chi-sq = 1.6, P = 0.2
+
+(cn_plot <- 
+  ggplot(data = comb_N, aes(x = Fertilized, y = C.N) )+
+  geom_violin(lwd = 1.2, scale = "count",draw_quantiles = c(0.25, 0.5, 0.75), fill='#A4A4A4', alpha = 0.3) +
+  stat_summary(fun ='mean', geom='point', shape = 17, size=6, colour = "red") +
+  geom_jitter(width = 0.1, size = 3) +
+  theme_classic() + 
+  labs(y = "C:N", title= "b. C:N Ratio\n") + # label axes
+  scale_x_discrete(limits = c('N', 'Y'), name = "Treatment",
+                   labels = c("N" = "Unfertilized", "Y" = "Fertilized")) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        legend.position = "none",
+        axis.line = element_line(colour = "black"),
+        plot.title = element_text(color = "grey20", size = 25, hjust = 0, vjust = 0, face = "plain"),
+        axis.text.x = element_text(color = "grey20", size = 20, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.x = element_text(color = "grey20", size = 25, hjust = .5, vjust = 0, face = "plain"),
+        axis.text.y = element_text(color = "grey20", size = 20, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.y = element_text(color = "grey20", size = 25, hjust = .5, vjust = 0, face = "plain")
+  )  +
+    annotate("text", x = 0.6, y = 28, label = "LMER\nChi-sq = 1.61, P = 0.205",
+             hjust = 0, size = 8) )
+```
+
+## create plot
+
+```{r turf characteristics panel, fig.height=10, fig.width=18}
+ggpubr::ggarrange(bio_plot, cn_plot, nrow = 1, widths = c(1,1))
+```
+
