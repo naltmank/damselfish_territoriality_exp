@@ -11,3 +11,7 @@ damselfish_video_data.csv contains information on territory size as well as the 
 damselfish_turf_biomass.csv contains information used for the turf biomass analyses, including the dimensions of each turf sample in cm, the dry weight in g, the ash free dry weight (AFDW), and the biomass calculated as the difference between the two. 
 
 damselfish_turf_nitrogen.csv contains information used for the turf elemental analysis, included unused data on turf isotopic content. 
+
+# Code
+
+All code necessary to run the analyses are present in the file damselfish_territoriality_exp_code.rmd. This file requires the user to clone the github repository in RStudio as a version control R project. 
