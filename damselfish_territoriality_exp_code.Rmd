@@ -140,7 +140,7 @@ plot(allEffects(fish.change.mod))
         axis.title.y = element_text(color = "grey20", size = 25, hjust = .5, vjust = 0, face = "plain")
   ) +
    geom_hline(yintercept=0, linetype = "dashed") +
-  annotate("text", x = 0.6, y = 50, label = "LMER\nChi-sq = 5.83, P = 0.016", hjust = 0, size = 10) )
+  annotate("text", x = 0.6, y = 50, label = "LMER\nChi-sq = 5.8, P = 0.016", hjust = 0, size = 10) )
 
 
 # fish change plot
@@ -164,7 +164,7 @@ plot(allEffects(fish.change.mod))
         axis.title.y = element_text(color = "grey20", size = 25, hjust = .5, vjust = 0, face = "plain")
   ) +
    geom_hline(yintercept=0, linetype = "dashed") +
-  annotate("text", x = 0.6, y = 185, label = "LMER\nChi-sq = 0.14, P = 0.711", hjust = 0, size = 10) )
+  annotate("text", x = 0.6, y = 185, label = "LMER\nChi-sq = 0.14, P = 0.71", hjust = 0, size = 10) )
 ```
 ## create panel graph
 ```{r territory characteristics panel, fig.height=10, fig.width=18}
@@ -308,7 +308,7 @@ behavior_means$Bite.rate.letter.height <- behavior_means$Bite.rate.per.m2 + beha
             size = 1, position = position_dodge(width = 0.2)) + # add lines
   scale_x_discrete(limits = c("Pre-fertilization", "Post-fertilization"), labels = c("Day 0", "Day 14")) +
   geom_text(aes(x = 0.5, y = 0.84,
-                label = "Time-point: P < 0.001\nTreatment: P = 0.300\nTime-point x Treatment:  P < 0.001"),
+                label = "Time-point: P < 0.001\nTreatment: P = 0.30\nTime-point x Treatment:  P < 0.001"),
             hjust = 0, size = 8) + 
   geom_text(data = behavior_means, aes(x = Pre.post.trt, y = Bite.rate.letter.height, colour = Fertilized,
                                        label = Bite.rate.letters),
@@ -332,7 +332,8 @@ behavior_means$Bite.rate.letter.height <- behavior_means$Bite.rate.per.m2 + beha
         legend.title = element_text(size = 32),
         legend.position = 'bottom', # move legend to bottom
         legend.box = 'horizontal',
-        legend.box.background = element_rect(colour = "black") # make legend horizontal
+        legend.box.background = element_rect(colour = NA),
+        legend.key=element_blank()
    ) +
     geom_segment(aes(x = 2.25, y = 0.4424724, xend = 2.25, yend = 0.7818773)) +
     geom_segment(aes(x = 2.22, y = 0.7818773, xend = 2.25, yend = 0.7818773)) +
@@ -418,7 +419,7 @@ otherbites_means$Letter.height <- otherbites_means$Other.fish.bites.rate.per.m2 
             size = 1, position = position_dodge(width = 0.2)) + # add lines
   scale_x_discrete(limits = c("Pre-fertilization", "Post-fertilization"), labels = c("Day 0", "Day 14")) +
   geom_text(aes(x = 0.5, y = 0.0055,
-                label = "Time-point: P = 0.204\nTreatment: P = 0.253\nTime-point x Treatment:  P = 0.046"),
+                label = "Time-point: P = 0.20\nTreatment: P = 0.25\nTime-point x Treatment:  P = 0.046"),
             hjust = 0, size = 8) + 
   geom_text(data = otherbites_means, aes(x = Pre.post.trt, y = Letter.height, colour = Fertilized,
                                        label = Letters),
@@ -442,7 +443,8 @@ otherbites_means$Letter.height <- otherbites_means$Other.fish.bites.rate.per.m2 
         legend.title = element_text(size = 32),
         legend.position = 'bottom', # move legend to bottom
         legend.box = 'horizontal',
-        legend.box.background = element_rect(colour = "black") # make legend horizontal
+        legend.box.background = element_rect(colour = NA),
+        legend.key=element_blank()
    ))
 ```
 
@@ -516,7 +518,7 @@ behavior_means$Intra.chase.letter.height <- behavior_means$Intra.chase.rate.per.
   scale_x_discrete(limits = c("Pre-fertilization", "Post-fertilization"), labels = c("Day 0", "Day 14")) +
    scale_y_continuous(limits = c(0,0.18))+
   geom_text(aes(x = 0.5, y = 0.165,
-                label = "Time-point: P = 0.001\nTreatment: P = 0.943\nTime-point x Treatment:  P = 0.001"),
+                label = "Time-point: P = 0.001\nTreatment: P = 0.94\nTime-point x Treatment:  P = 0.001"),
             hjust = 0, size = 8) + 
   geom_text(data = behavior_means, aes(x = Pre.post.trt, y = Intra.chase.letter.height, colour = Fertilized,
                                        label = Intra.chase.letters),
@@ -540,7 +542,8 @@ behavior_means$Intra.chase.letter.height <- behavior_means$Intra.chase.rate.per.
         legend.title = element_text(size = 32),
         legend.position = 'bottom', # move legend to bottom
         legend.box = 'horizontal',
-        legend.box.background = element_rect(colour = "black") # make legend horizontal
+        legend.box.background = element_rect(colour = NA), # make legend horizontal
+        legend.key=element_blank()
    ))
 
 ```
@@ -625,11 +628,11 @@ emmeans::emmeans(interchase_mod_2, pairwise ~ Fertilized | Pre.post.trt)
   scale_x_discrete(limits = c("Pre-fertilization", "Post-fertilization"), labels = c("Day 0", "Day 14")) +
   scale_y_continuous(limits = c(0,0.12))+
   geom_text(aes(x = 0.5, y = 0.11,
-                label = "Time-point: P = 0.958\nTreatment: P = 0.313\nTime-point x Treatment:  P = 0.015"),
+                label = "Time-point: P = 0.96\nTreatment: P = 0.31\nTime-point x Treatment:  P = 0.015"),
             hjust = 0, size = 8) + 
   labs(y = bquote("Chases min"^ -1*" m"^ -2*""~"\n"), x = "", title = "d. Heterospecific chases\n", x = "") +
     scale_colour_discrete(name = "Treatment", labels = c("Unfertilized", "Fertilized") ) +
-  scale_fill_discrete(name = "Treatment", labels = c("Unfertilized", "Fertilized") ) +
+  scale_colour_discrete(name = "Treatment", labels = c("Unfertilized", "Fertilized") ) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(),
@@ -645,7 +648,8 @@ emmeans::emmeans(interchase_mod_2, pairwise ~ Fertilized | Pre.post.trt)
         legend.title = element_text(size = 32),
         legend.position = 'bottom', # move legend to bottom
         legend.box = 'horizontal',
-        legend.box.background = element_rect(colour = "black") # make legend horizontal
+        legend.box.background = element_rect(colour = "NA"), # make legend horizontal
+        legend.key=element_blank()
    ))
 ```
 
@@ -748,9 +752,9 @@ bio_graph$Letter_height <- bio_graph$Biomass.per.cm2 + bio_graph$Biomass.per.cm2
         legend.title = element_text(size = 25),
         legend.position = 'bottom', # move legend to bottom
         legend.box = 'horizontal',
-        legend.box.background = element_rect(colour = "black") # make legend horizontal
+        legend.background = element_rect(color = NA)# make legend horizontal
   ) +
-    annotate("text", x = 0.5, y = 0.04, label = "Timepoint: P <0.0001\nTreatment: P = 0.048\nTimepoint x Treatment: P = 0.161",
+    annotate("text", x = 0.5, y = 0.04, label = "Timepoint: P <0.001\nTreatment: P = 0.048\nTimepoint x Treatment: P = 0.16",
              hjust = 0, size = 8) +
     geom_segment(aes(x = 2.25, y = 0.01919681, xend = 2.25, yend = 0.03276647)) +
     geom_segment(aes(x = 2.22, y = 0.01919681, xend = 2.25, yend = 0.01919681)) +
@@ -799,7 +803,7 @@ Anova(cn.mod) # Chi-sq = 1.6, P = 0.2
         axis.text.y = element_text(color = "grey20", size = 20, hjust = .5, vjust = .5, face = "plain"),
         axis.title.y = element_text(color = "grey20", size = 25, hjust = .5, vjust = 0, face = "plain")
   )  +
-    annotate("text", x = 0.6, y = 28, label = "LMER\nChi-sq = 1.61, P = 0.205",
+    annotate("text", x = 0.6, y = 28, label = "LMER\nChi-sq = 1.6, P = 0.21",
              hjust = 0, size = 8) )
 ```
 
