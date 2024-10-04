@@ -127,7 +127,7 @@ plot(allEffects(fish.change.mod))
                    labels = c("N" = "Unfertilized", "Y" = "Fertilized")) + 
   scale_y_continuous(limits = c(-75, 60)) +
   theme_classic() + 
-  labs(x ="Fertilized (Y/N)", y = "Percent Change \n", title = "a. Territory size\n") +
+  labs(x ="Fertilized (Y/N)", y = "Percent change \n", title = "(a) Territory size\n") +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(),
@@ -151,7 +151,7 @@ plot(allEffects(fish.change.mod))
   scale_x_discrete(limits = c('N', 'Y'), name = "Treatment",
                    labels = c("N" = "Unfertilized", "Y" = "Fertilized")) + 
   theme_classic() + 
-  labs(x ="Fertilized (Y/N)", y = "", title = "b. Resident fish\n") +
+  labs(x ="Fertilized (Y/N)", y = "", title = "(b) Resident fish\n") +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(),
@@ -314,7 +314,7 @@ behavior_means$Bite.rate.letter.height <- behavior_means$Bite.rate.per.m2 + beha
                                        label = Bite.rate.letters),
             size = 8, position = position_dodge(width = 0.2), show.legend = FALSE) +
 
-  labs(y = bquote("Bites min"^ -1*" m"^ -2*""~"\n"), x = "", title = "a. Damselfish bite rate\n", x = "") +
+  labs(y = bquote("Bites min"^ -1*" m"^ -2*""~"\n"), x = "", title = "(a) Damselfish bite rate\n", x = "") +
   scale_colour_discrete(name = "Treatment", labels = c("Unfertilized", "Fertilized") ) +
   scale_fill_discrete(name = "Treatment", labels = c("Unfertilized", "Fertilized") ) +
   theme(panel.grid.major = element_blank(), 
@@ -325,8 +325,10 @@ behavior_means$Bite.rate.letter.height <- behavior_means$Bite.rate.per.m2 + beha
         axis.text.y = element_text(color = "grey20", size = 28, hjust = .5, vjust = .5, face = "plain"),
         axis.title.y = element_text(color = "grey20", size = 32, hjust = .5, vjust = 0, face = "plain"),
         axis.line.x = element_line(colour = "black"),
-        axis.text.x = element_text(color = "grey20", size = 28, hjust = .5, vjust = .5, face = "plain"),
-        axis.title.x = element_text(color = "grey20", size = 32, hjust = .5, vjust = 0, face = "plain"),
+#        axis.text.x = element_text(color = "grey20", size = 28, hjust = .5, vjust = .5, face = "plain"),
+#        axis.title.x = element_text(color = "grey20", size = 32, hjust = .5, vjust = 0, face = "plain"),
+        axis.text.x =  element_blank(),
+        axis.title.x = element_blank(),
         legend.key.size = unit(2, "cm"), # increase legend size
         legend.text = element_text(size = 28), # increase legend text
         legend.title = element_text(size = 32),
@@ -427,7 +429,7 @@ otherbites_means$Letter.height <- otherbites_means$Other.fish.bites.rate.per.m2 
   scale_y_continuous(limits = c(0, 0.006)) +
   scale_colour_discrete(name = "Treatment", labels = c("Unfertilized", "Fertilized") ) +
   scale_fill_discrete(name = "Treatment", labels = c("Unfertilized", "Fertilized") ) +
-  labs(y = bquote("Bites min"^ -1*" m"^ -2*""~"\n"), x = "", title = "b. Other fish bite rate\n", x = "") +
+  labs(y = "", x = "", title = "(b) Other fish bite rate\n", x = "") +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(),
@@ -436,8 +438,10 @@ otherbites_means$Letter.height <- otherbites_means$Other.fish.bites.rate.per.m2 
         axis.text.y = element_text(color = "grey20", size = 28, hjust = .5, vjust = .5, face = "plain"),
         axis.title.y = element_text(color = "grey20", size = 32, hjust = .5, vjust = 0, face = "plain"),
         axis.line.x = element_line(colour = "black"),
-        axis.text.x = element_text(color = "grey20", size = 28, hjust = .5, vjust = .5, face = "plain"),
-        axis.title.x = element_text(color = "grey20", size = 32, hjust = .5, vjust = 0, face = "plain"),
+#        axis.text.x = element_text(color = "grey20", size = 28, hjust = .5, vjust = .5, face = "plain"),
+#        axis.title.x = element_text(color = "grey20", size = 32, hjust = .5, vjust = 0, face = "plain"),
+        axis.text.x =  element_blank(),
+        axis.title.x = element_blank(),
         legend.key.size = unit(2, "cm"), # increase legend size
         legend.text = element_text(size = 28 ), # increase legend text
         legend.title = element_text(size = 32),
@@ -526,7 +530,7 @@ behavior_means$Intra.chase.letter.height <- behavior_means$Intra.chase.rate.per.
 
   scale_colour_discrete(name = "Treatment", labels = c("Unfertilized", "Fertilized") ) +
   scale_fill_discrete(name = "Treatment", labels = c("Unfertilized", "Fertilized") ) +
-  labs(y = bquote("Chases min"^ -1*" m"^ -2*""~"\n"), x = "", title = "c. Conspecific chases\n", x = "") +
+  labs(y = bquote("Chases min"^ -1*" m"^ -2*""~"\n"), x = "", title = "(c) Conspecific chases\n", x = "") +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(),
@@ -630,9 +634,8 @@ emmeans::emmeans(interchase_mod_2, pairwise ~ Fertilized | Pre.post.trt)
   geom_text(aes(x = 0.5, y = 0.11,
                 label = "Time-point: P = 0.96\nTreatment: P = 0.31\nTime-point x Treatment:  P = 0.015"),
             hjust = 0, size = 8) + 
-  labs(y = bquote("Chases min"^ -1*" m"^ -2*""~"\n"), x = "", title = "d. Heterospecific chases\n", x = "") +
+  labs(y = "", x = "", title = "(d) Heterospecific chases\n", x = "") +
     scale_colour_discrete(name = "Treatment", labels = c("Unfertilized", "Fertilized") ) +
-  scale_colour_discrete(name = "Treatment", labels = c("Unfertilized", "Fertilized") ) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(),
@@ -737,7 +740,7 @@ bio_graph$Letter_height <- bio_graph$Biomass.per.cm2 + bio_graph$Biomass.per.cm2
   scale_fill_discrete(labels = c("Unfertilized", "Fertilized") ) +
   labs(x ="Timepoint", 
        y = bquote("Biomass (g cm"^ -2*")"~"\n"),
-       title= "a. Turf biomass\n", color = "Treatment", fill = "Treatment") + # label axes
+       title= "(a) Turf biomass\n", color = "Treatment", fill = "Treatment") + # label axes
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(),
@@ -747,7 +750,7 @@ bio_graph$Letter_height <- bio_graph$Biomass.per.cm2 + bio_graph$Biomass.per.cm2
         axis.title.x = element_text(color = "grey20", size = 25, hjust = .5, vjust = 0, face = "plain"),
         axis.text.y = element_text(color = "grey20", size = 20, hjust = .5, vjust = .5, face = "plain"),
         axis.title.y = element_text(color = "grey20", size = 25, hjust = .5, vjust = 0, face = "plain"),
-        legend.key.size = unit(2, "cm"), # increase legend size
+        legend.key.size = unit(2.4, "cm"), # increase legend size
         legend.text = element_text(size = 20), # increase legend text
         legend.title = element_text(size = 25),
         legend.position = 'bottom', # move legend to bottom
@@ -789,7 +792,7 @@ Anova(cn.mod) # Chi-sq = 1.6, P = 0.2
   stat_summary(fun ='mean', geom='point', shape = 17, size=6, colour = "red") +
   geom_jitter(width = 0.1, size = 3) +
   theme_classic() + 
-  labs(y = "C:N", title= "b. C:N Ratio\n") + # label axes
+  labs(y = "C:N", title= "(b) C:N Ratio\n") + # label axes
   scale_x_discrete(limits = c('N', 'Y'), name = "Treatment",
                    labels = c("N" = "Unfertilized", "Y" = "Fertilized")) +
   theme(panel.grid.major = element_blank(), 
