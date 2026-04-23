@@ -122,21 +122,21 @@ plot(allEffects(fish.change.mod))
   geom_violin(lwd = 1.2, scale = "count",draw_quantiles = c(0.25, 0.5, 0.75), fill='#A4A4A4', alpha = 0.3) +
   stat_summary(fun ='mean', geom='point', shape = 17, size=6, colour = "red") +
   geom_jitter(width = 0.1, size = 3) +
-  scale_x_discrete(limits = c('N', 'Y'), name = "Fertilizer treatment",
+  scale_x_discrete(limits = c('N', 'Y'), name = "Treatment",
                    labels = c("N" = "Unfertilized", "Y" = "Fertilized")) + 
   scale_y_continuous(limits = c(-75, 60)) +
   theme_classic() + 
-  labs(x ="Fertilized (Y/N)", y = "Percent change (area) \n", title = "(a)\n") +
+  labs(x ="Fertilized (Y/N)", y = "Percent change in area", title = "(a)\n") +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(),
         legend.position = "none",
-        axis.line = element_line(colour = "black"),
-        plot.title = element_text(color = "grey20", size = 25, hjust = 0, vjust = 0, face = "plain"),
-        axis.text.x = element_text(color = "grey20", size = 20, hjust = .5, vjust = .5, face = "plain"),
-        axis.title.x = element_text(color = "grey20", size = 25, hjust = .5, vjust = 0, face = "plain"),
-        axis.text.y = element_text(color = "grey20", size = 20, hjust = .5, vjust = .5, face = "plain"),
-        axis.title.y = element_text(color = "grey20", size = 25, hjust = .5, vjust = 0, face = "plain")
+        axis.line = element_line(colour = "black", size = 1.2),
+        plot.title = element_text(color = "black", size = 25, hjust = 0, vjust = 0, face = "plain"),
+        axis.text.x = element_text(color = "black", size = 24, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.x = element_text(color = "black", size = 25, hjust = .5, vjust = 0, face = "plain"),
+        axis.text.y = element_text(color = "black", size = 24, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.y = element_text(color = "black", size = 25, hjust = .5, vjust = 0, face = "plain", margin = margin(r = 15))
   ) +
    geom_hline(yintercept=0, linetype = "dashed")  +
   annotate("text", x = 0.6, y = 50, label = "LMER\nChi-sq = 5.8, P = 0.016", hjust = 0, size = 10) 
@@ -148,20 +148,21 @@ plot(allEffects(fish.change.mod))
   geom_violin(lwd = 1.2, scale = "count",draw_quantiles = c(0.25, 0.5, 0.75), fill='#A4A4A4', alpha = 0.3) +
   stat_summary(fun ='mean', geom='point', shape = 17, size=6, colour = "red") +
   geom_jitter(width = 0.1, size = 3) +
-  scale_x_discrete(limits = c('N', 'Y'), name = "Fertilizer treatment",
+  scale_x_discrete(limits = c('N', 'Y'), name = "Treatment",
                    labels = c("N" = "Unfertilized", "Y" = "Fertilized")) + 
   theme_classic() + 
-  labs(x ="Fertilized (Y/N)", y = "Percent change (resident fish)\n", title = "(b) \n") +
+  labs(x ="Fertilized (Y/N)", y = "Percent change in resident fish", title = "(b) \n") +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(),
         legend.position = "none",
-        axis.line = element_line(colour = "black"),
-        plot.title = element_text(color = "grey20", size = 25, hjust = 0, vjust = 0, face = "plain"),
-        axis.text.x = element_text(color = "grey20", size = 20, hjust = .5, vjust = .5, face = "plain"),
-        axis.title.x = element_text(color = "grey20", size = 25, hjust = .5, vjust = 0, face = "plain"),
-        axis.text.y = element_text(color = "grey20", size = 20, hjust = .5, vjust = .5, face = "plain"),
-        axis.title.y = element_text(color = "grey20", size = 25, hjust = .5, vjust = 0, face = "plain")
+        axis.line = element_line(colour = "black", size = 1.2),
+        plot.title = element_text(color = "black", size = 25, hjust = 0, vjust = 0, face = "plain"),
+        axis.text.x = element_text(color = "black", size = 24, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.x = element_text(color = "black", size = 25, hjust = .5, vjust = 0, face = "plain"),
+        axis.text.y = element_text(color = "black", size = 24, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.y = element_text(color = "black", size = 25, hjust = .5, vjust = 0, face = "plain",
+                                    margin = margin(r = 15))
   ) +
    geom_hline(yintercept=0, linetype = "dashed")  +
   annotate("text", x = 0.6, y = 185, label = "LMER\nChi-sq = 0.14, P = 0.71", hjust = 0, size = 10) 
@@ -169,7 +170,9 @@ plot(allEffects(fish.change.mod))
 ```
 ## create panel graph
 ```{r territory characteristics panel, fig.height=10, fig.width=18}
-ggpubr::ggarrange(territory_plot, fish_plot, nrow = 1, widths = c(1,1))
+(territory_traits <- ggpubr::ggarrange(territory_plot, fish_plot, nrow = 1, widths = c(1,1)))
+
+ggsave(here("output", "fig1.eps"), territory_traits, width = 18, height = 10, units = "in", dpi = "retina")
 ```
 
 # Figure 2 - fish behaviors
@@ -302,7 +305,7 @@ emmeans::emmeans(bite_mod_2, pairwise ~ Fertilized | Pre.post.trt) # And bite ra
 #  N - Y      0.0851 0.235 Inf   0.363  0.7168
 
 behavior_means$Bite.rate.letters <- c("a", "a", "b", "a")
-behavior_means$Bite.rate.letter.height <- behavior_means$Bite.rate.per.m2 + behavior_means$Bite.rate.per.m2_se + 0.08
+behavior_means$Bite.rate.letter.height <- (behavior_means$Bite.rate.per.m2 + behavior_means$Bite.rate.per.m2_se)*1.15 
 
 ```
 
@@ -313,8 +316,8 @@ behavior_means$Bite.rate.letter.height <- behavior_means$Bite.rate.per.m2 + beha
   geom_errorbar(data = behavior_means, aes(x = Pre.post.trt, ymin = Bite.rate.per.m2 - Bite.rate.per.m2_se,
                                            ymax = Bite.rate.per.m2 + Bite.rate.per.m2_se, colour = Fertilized),
              size = 0.6, position = position_dodge(width = 0.2), width = 0.15) +
-  geom_jitter(data = behavior, aes(x = Pre.post.trt, y = Bite.rate.per.m2, colour = Fertilized), alpha = 0.2,
-              size = 4, width = 0.1) +
+  geom_jitter(data = behavior, aes(x = Pre.post.trt, y = Bite.rate.per.m2, colour = Fertilized),
+              alpha = 1, shape = 4, size = 4, width = 0.1) +
   geom_line(data = behavior_means, aes(x= Pre.post.trt, y = Bite.rate.per.m2, group = Fertilized, colour = Fertilized),
             size = 1, position = position_dodge(width = 0.2)) + # add lines
   scale_x_discrete(limits = c("Pre-fertilization", "Post-fertilization"), labels = c("Day 0", "Day 14")) +
@@ -326,18 +329,23 @@ behavior_means$Bite.rate.letter.height <- behavior_means$Bite.rate.per.m2 + beha
             size = 8, position = position_dodge(width = 0.2), show.legend = FALSE) +
 
   labs(y = bquote("Bites min"^ -1*" m"^ -2*""~"\n"), x = "", title = "(a) \n", x = "") +
-  scale_colour_discrete(name = "Fertilizer treatment", labels = c("Unfertilized", "Fertilized") ) +
-  scale_fill_discrete(name = "Fertilizer treatment", labels = c("Unfertilized", "Fertilized") ) +
+  scale_colour_manual(name = "Treatment", labels = c("Unfertilized", "Fertilized"),
+                        values = c("N" = "darkred", "Y" = "dodgerblue")) +
+  scale_fill_discrete(name = "Treatment", labels = c("Unfertilized", "Fertilized") ) +
+  scale_y_log10() +
+
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(),
-        plot.title = element_text(color = "grey20", size = 32, vjust = 0, face = "plain"),
+        axis.line = element_line(colour = "black", size = 1.2),
+        plot.title = element_text(color = "black", size = 32, vjust = 0, face = "plain"),
         axis.line.y = element_line(colour = "black"),
-        axis.text.y = element_text(color = "grey20", size = 28, hjust = .5, vjust = .5, face = "plain"),
-        axis.title.y = element_text(color = "grey20", size = 32, hjust = .5, vjust = 0, face = "plain"),
+        axis.text.y = element_text(color = "black", size = 28, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.y = element_text(color = "black", size = 32, hjust = .5, vjust = 0, face = "plain",
+                                   margin = margin(r = 15)),
         axis.line.x = element_line(colour = "black"),
-#        axis.text.x = element_text(color = "grey20", size = 28, hjust = .5, vjust = .5, face = "plain"),
-#        axis.title.x = element_text(color = "grey20", size = 32, hjust = .5, vjust = 0, face = "plain"),
+#        axis.text.x = element_text(color = "black", size = 28, hjust = .5, vjust = .5, face = "plain"),
+#        axis.title.x = element_text(color = "black", size = 32, hjust = .5, vjust = 0, face = "plain"),
         axis.text.x =  element_blank(),
         axis.title.x = element_blank(),
         legend.key.size = unit(2, "cm"), # increase legend size
@@ -351,7 +359,7 @@ behavior_means$Bite.rate.letter.height <- behavior_means$Bite.rate.per.m2 + beha
     geom_segment(aes(x = 2.25, y = 0.4424724, xend = 2.25, yend = 0.7818773)) +
     geom_segment(aes(x = 2.22, y = 0.7818773, xend = 2.25, yend = 0.7818773)) +
     geom_segment(aes(x = 2.22, y = 0.4424724, xend = 2.25, yend = 0.4424724)) +
-    annotate("text", x = 2.4, y = 0.6121748, label = "**", vjust = 0.5, size = 12))
+    annotate("text", x = 2.4, y = 0.55, label = "**", vjust = 0.5, size = 12))
 
 ```
 
@@ -417,7 +425,9 @@ emmeans::emmeans(otherbites_mod_2, pairwise ~ Fertilized | Pre.post.trt) # no si
 
 
 otherbites_means$Letters <- c("a", "a", "b", "a")
-otherbites_means$Letter.height <- otherbites_means$Other.fish.bites.rate.per.m2 + otherbites_means$Other.fish.bites.rate.per.m2_se + 0.0005
+otherbites_means$Letter.height <-
+  (otherbites_means$Other.fish.bites.rate.per.m2 +
+   otherbites_means$Other.fish.bites.rate.per.m2_se) * 1.15
 ```
 
 ```{r other bites graph, fig.height= 10, fig.width=10}
@@ -428,8 +438,9 @@ otherbites_means$Letter.height <- otherbites_means$Other.fish.bites.rate.per.m2 
   geom_errorbar(data = otherbites_means, aes(x = Pre.post.trt, ymin = Other.fish.bites.rate.per.m2 - Other.fish.bites.rate.per.m2_se,
                                            ymax = Other.fish.bites.rate.per.m2 + Other.fish.bites.rate.per.m2_se, colour = Fertilized),
              size = 0.6, position = position_dodge(width = 0.2), width = 0.15) +
-  geom_jitter(data = otherbites, aes(x = Pre.post.trt, y = Other.fish.bites.rate.per.m2, colour = Fertilized), alpha = 0.2,
-           size = 4, width = 0.1) +
+  geom_jitter(data = otherbites, aes(x = Pre.post.trt, y = Other.fish.bites.rate.per.m2,
+                                     colour = Fertilized),
+              alpha = 1, shape = 4, size = 4, width = 0.1) +
   geom_line(data = otherbites_means, aes(x= Pre.post.trt, y = Other.fish.bites.rate.per.m2, group = Fertilized, colour = Fertilized),
             size = 1, position = position_dodge(width = 0.2)) + # add lines
   scale_x_discrete(limits = c("Pre-fertilization", "Post-fertilization"), labels = c("Day 0", "Day 14")) +
@@ -440,19 +451,21 @@ otherbites_means$Letter.height <- otherbites_means$Other.fish.bites.rate.per.m2 
                                        label = Letters),
             size = 8, position = position_dodge(width = 0.2), show.legend = FALSE) +
 #  scale_y_continuous(limits = c(0, 0.006)) +
-  scale_colour_discrete(name = "Fertilizer treatment", labels = c("Unfertilized", "Fertilized") ) +
-  scale_fill_discrete(name = "Fertilizer treatment", labels = c("Unfertilized", "Fertilized") ) +
+  scale_colour_manual(name = "Treatment", labels = c("Unfertilized", "Fertilized"),                         values = c("N" = "darkred", "Y" = "dodgerblue"))  +
+  scale_fill_discrete(name = "Treatment", labels = c("Unfertilized", "Fertilized") ) +
+  scale_y_log10() +
   labs(y = "", x = "", title = "(b)\n", x = "") +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(),
-        plot.title = element_text(color = "grey20", size = 32, vjust = 0, face = "plain"),
+        axis.line = element_line(colour = "black", size = 1.2),
+        plot.title = element_text(color = "black", size = 32, vjust = 0, face = "plain"),
         axis.line.y = element_line(colour = "black"),
-        axis.text.y = element_text(color = "grey20", size = 28, hjust = .5, vjust = .5, face = "plain"),
-        axis.title.y = element_text(color = "grey20", size = 32, hjust = .5, vjust = 0, face = "plain"),
+        axis.text.y = element_text(color = "black", size = 28, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.y = element_text(color = "black", size = 32, hjust = .5, vjust = 0, face = "plain",                                    margin = margin(r = 15)),
         axis.line.x = element_line(colour = "black"),
-#        axis.text.x = element_text(color = "grey20", size = 28, hjust = .5, vjust = .5, face = "plain"),
-#        axis.title.x = element_text(color = "grey20", size = 32, hjust = .5, vjust = 0, face = "plain"),
+#        axis.text.x = element_text(color = "black", size = 28, hjust = .5, vjust = .5, face = "plain"),
+#        axis.title.x = element_text(color = "black", size = 32, hjust = .5, vjust = 0, face = "plain"),
         axis.text.x =  element_blank(),
         axis.title.x = element_blank(),
         legend.key.size = unit(2, "cm"), # increase legend size
@@ -519,7 +532,7 @@ emmeans::emmeans(intrachase_mod_3, pairwise ~ Fertilized | Pre.post.trt) # no si
 
 
 behavior_means$Intra.chase.letters <- c("a", "a", "b", "a")
-behavior_means$Intra.chase.letter.height <- behavior_means$Intra.chase.rate.per.m2 + behavior_means$Intra.chase.rate.per.m2_se + 0.06
+behavior_means$Intra.chase.letter.height <- (behavior_means$Intra.chase.rate.per.m2 + behavior_means$Intra.chase.rate.per.m2_se)*1.2
 
 ```
 
@@ -530,7 +543,7 @@ behavior_means$Intra.chase.letter.height <- behavior_means$Intra.chase.rate.per.
   geom_errorbar(data = behavior_means, aes(x = Pre.post.trt, ymin = Intra.chase.rate.per.m2 - Intra.chase.rate.per.m2_se,
                                            ymax = Intra.chase.rate.per.m2 + Intra.chase.rate.per.m2_se, colour = Fertilized),
              size = 0.6, position = position_dodge(width = 0.2), width = 0.15) +
-  geom_jitter(data = behavior, aes(x = Pre.post.trt, y = Intra.chase.rate.per.m2, colour = Fertilized), alpha = 0.2,
+  geom_jitter(data = behavior, aes(x = Pre.post.trt, y = Intra.chase.rate.per.m2, colour = Fertilized), alpha = 1, shape = 4,
             size = 4, width = 0.1) +
   geom_line(data = behavior_means, aes(x= Pre.post.trt, y = Intra.chase.rate.per.m2, group = Fertilized, colour = Fertilized),
             size = 1, position = position_dodge(width = 0.2)) + # add lines
@@ -542,20 +555,22 @@ behavior_means$Intra.chase.letter.height <- behavior_means$Intra.chase.rate.per.
   geom_text(data = behavior_means, aes(x = Pre.post.trt, y = Intra.chase.letter.height, colour = Fertilized,
                                        label = Intra.chase.letters),
             size = 8, position = position_dodge(width = 0.2), show.legend = FALSE) +
-
-  scale_colour_discrete(name = "Fertilizer treatment", labels = c("Unfertilized", "Fertilized") ) +
-  scale_fill_discrete(name = "Fertilizer treatment", labels = c("Unfertilized", "Fertilized") ) +
+  scale_y_log10() +
+  scale_colour_manual(name = "Treatment", labels = c("Unfertilized", "Fertilized"),                         values = c("N" = "darkred", "Y" = "dodgerblue"))  +
+  scale_fill_discrete(name = "Treatment", labels = c("Unfertilized", "Fertilized") ) +
   labs(y = bquote("Chases min"^ -1*" m"^ -2*""~"\n"), x = "", title = "(c) \n", x = "") +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(),
-        plot.title = element_text(color = "grey20", size = 32, vjust = 0, face = "plain"),
+        axis.line = element_line(colour = "black", size = 1.2),
+        plot.title = element_text(color = "black", size = 32, vjust = 0, face = "plain"),
         axis.line.y = element_line(colour = "black"),
-        axis.text.y = element_text(color = "grey20", size = 28, hjust = .5, vjust = .5, face = "plain"),
-        axis.title.y = element_text(color = "grey20", size = 32, hjust = .5, vjust = 0, face = "plain"),
+        axis.text.y = element_text(color = "black", size = 28, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.y = element_text(color = "black", size = 32, hjust = .5, vjust = 0, face = "plain",
+                                    margin = margin(r = 15)),
         axis.line.x = element_line(colour = "black"),
-        axis.text.x = element_text(color = "grey20", size = 28, hjust = .5, vjust = .5, face = "plain"),
-        axis.title.x = element_text(color = "grey20", size = 32, hjust = .5, vjust = 0, face = "plain"),
+        axis.text.x = element_text(color = "black", size = 28, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.x = element_text(color = "black", size = 32, hjust = .5, vjust = 0, face = "plain"),
         legend.key.size = unit(2, "cm"), # increase legend size
         legend.text = element_text(size = 28), # increase legend text
         legend.title = element_text(size = 32),
@@ -642,7 +657,7 @@ emmeans::emmeans(interchase_mod_2, pairwise ~ Fertilized | Pre.post.trt)
   geom_errorbar(data = behavior_means, aes(x = Pre.post.trt, ymin = Inter.chase.rate.per.m2 - Inter.chase.rate.per.m2_se,
                                            ymax = Inter.chase.rate.per.m2 + Inter.chase.rate.per.m2_se, colour = Fertilized),
              size = 0.6, position = position_dodge(width = 0.2), width = 0.15) +
-  geom_jitter(data = behavior, aes(x = Pre.post.trt, y = Inter.chase.rate.per.m2, colour = Fertilized), alpha = 0.2,
+  geom_jitter(data = behavior, aes(x = Pre.post.trt, y = Inter.chase.rate.per.m2, colour = Fertilized), alpha = 1, shape = 4,
            size = 4, width = 0.1) +
   geom_line(data = behavior_means, aes(x= Pre.post.trt, y = Inter.chase.rate.per.m2, group = Fertilized, colour = Fertilized),
             size = 1, position = position_dodge(width = 0.2)) + # add lines
@@ -652,17 +667,19 @@ emmeans::emmeans(interchase_mod_2, pairwise ~ Fertilized | Pre.post.trt)
 #                label = "Time-point: P = 0.96\nTreatment: P = 0.31\nTime-point x Treatment:  P = 0.015"),
 #            hjust = 0, size = 8) + 
   labs(y = "", x = "", title = "(d) \n", x = "") +
-    scale_colour_discrete(name = "Fertilizer treatment", labels = c("Unfertilized", "Fertilized") ) +
+  scale_y_log10() +
+    scale_colour_manual(name = "Treatment", labels = c("Unfertilized", "Fertilized"),                         values = c("N" = "darkred", "Y" = "dodgerblue"))  +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(),
-        plot.title = element_text(color = "grey20", size = 32, vjust = 0, face = "plain"),
+        axis.line = element_line(colour = "black", size = 1.2),
+        plot.title = element_text(color = "black", size = 32, vjust = 0, face = "plain"),
         axis.line.y = element_line(colour = "black"),
-        axis.text.y = element_text(color = "grey20", size = 28, hjust = .5, vjust = .5, face = "plain"),
-        axis.title.y = element_text(color = "grey20", size = 32, hjust = .5, vjust = 0, face = "plain"),
+        axis.text.y = element_text(color = "black", size = 28, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.y = element_text(color = "black", size = 32, hjust = .5, vjust = 0, face = "plain",                                    margin = margin(r = 15)),
         axis.line.x = element_line(colour = "black"),
-        axis.text.x = element_text(color = "grey20", size = 28, hjust = .5, vjust = .5, face = "plain"),
-        axis.title.x = element_text(color = "grey20", size = 32, hjust = .5, vjust = 0, face = "plain"),
+        axis.text.x = element_text(color = "black", size = 28, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.x = element_text(color = "black", size = 32, hjust = .5, vjust = 0, face = "plain"),
         legend.key.size = unit(2, "cm"), # increase legend size
         legend.text = element_text(size = 28), # increase legend text
         legend.title = element_text(size = 32),
@@ -674,10 +691,10 @@ emmeans::emmeans(interchase_mod_2, pairwise ~ Fertilized | Pre.post.trt)
 ```
 
 ```{r panel graph, fig.height=15, fig.width=18}
-ggpubr::ggarrange(bite_rate_graph, otherbite_rate_graph, intra_chase_rate_graph, inter_chase_rate_graph, 
+(behavior_panel <- ggpubr::ggarrange(bite_rate_graph, otherbite_rate_graph, intra_chase_rate_graph, inter_chase_rate_graph, 
           ncol=2, nrow=2, widths = c(1,1), heights = c(1,1), common.legend = TRUE,
-          legend="bottom", legend.grob = ggpubr::get_legend(inter_chase_rate_graph)) 
-
+          legend="bottom", legend.grob = ggpubr::get_legend(inter_chase_rate_graph)) )
+ggsave(here("output", "fig2.eps"), behavior_panel, width = 18, height = 15, units = "in", dpi = "retina")
 ```
 
 # Figure 3 - turf biomass and nitrogen content
@@ -726,7 +743,13 @@ emmeans::emmeans(biomass_mod, pairwise ~ Fertilized | Pre.post.trt) # and post t
 plot(allEffects(biomass_mod))
 r.squaredGLMM(biomass_mod) # 0.13, 0.26
 
-#### NOTE: DID A RUN CONDENSING THE TRIPLICATES. RESULTS WERE BASICALLY THE SAME
+#### CONDENSING TRIPLICATES - SAME RESULTS AND ISSUES ####
+bio_graph_2 <- ddply(bio, c("Fertilized", "Pre.post.trt", "Territory", "Pair"), numcolwise(mean), na.rm = TRUE ) 
+biomass_mod_2 <- glmmTMB(Biomass ~ Pre.post.trt*Fertilized + offset(log(Area)) + (1|Pair) , family = Gamma(link = "log"), data = bio_graph_2)
+Anova(biomass_mod_2)
+plot(simulateResiduals(biomass_mod_2))
+emmeans::emmeans(biomass_mod_2, pairwise ~ Pre.post.trt | Fertilized)
+emmeans::emmeans(biomass_mod_2, pairwise ~ Fertilized | Pre.post.trt)
 
 
 # create df for plotting
@@ -735,13 +758,14 @@ bio_graph_se <- ddply(bio, c("Fertilized", "Pre.post.trt"), numcolwise(se))
 bio_graph <- cbind(bio_graph, dplyr::select(bio_graph_se, c("Biomass.per.cm2")) ) # add SE for biomass and pct organic
 colnames(bio_graph)[ncol(bio_graph)] <- c("Biomass.per.cm2.SE") # change column names
 bio_graph$Letters <- c("b", "a", "b", "a")
-bio_graph$Letter_height <- bio_graph$Biomass.per.cm2 + bio_graph$Biomass.per.cm2.SE + 0.001
+bio_graph$Letter_height <- (bio_graph$Biomass.per.cm2 + bio_graph$Biomass.per.cm2.SE)*1.15
+
 
 
 (bio_plot <- ggplot() + 
 
   geom_point(data = bio_graph, aes(x= Pre.post.trt, y = Biomass.per.cm2, fill = Fertilized, 
-             colour = Fertilized), shape = 23, size = 8, position = position_dodge(width = 0.2)) + # add points for mean
+             colour = Fertilized), size = 8, position = position_dodge(width = 0.2)) + # add points for mean
   geom_line(data = bio_graph, aes(x= Pre.post.trt, y = Biomass.per.cm2, group = Fertilized, colour = Fertilized),
             size = 2, position = position_dodge(width = 0.2)) + # add lines
   
@@ -750,24 +774,28 @@ bio_graph$Letter_height <- bio_graph$Biomass.per.cm2 + bio_graph$Biomass.per.cm2
                 position = position_dodge(width = 0.2)) +
   geom_text(data = bio_graph, aes(x = Pre.post.trt, y = Letter_height, colour = Fertilized, label = Letters),
             size = 8, position = position_dodge(width = 0.2), show.legend = FALSE) +
+  geom_jitter(data = bio, aes(x = Pre.post.trt, y = Biomass.per.cm2, colour = Fertilized),
+              alpha = 1, shape = 4, size = 4, width = 0.1) +
 
   theme_classic() + 
   scale_x_discrete(limits = c("Pre-fertilization", "Post-fertilization"),
                    labels = c("Day 0", "Day 14")) +
-  scale_colour_discrete(labels = c("Unfertilized", "Fertilized") ) +
+    scale_colour_manual(name = "Treatment", labels = c("Unfertilized", "Fertilized"),                         values = c("N" = "darkred", "Y" = "dodgerblue"))  +
   scale_fill_discrete(labels = c("Unfertilized", "Fertilized") ) +
+  scale_y_log10() + 
   labs(x ="Timepoint", 
        y = bquote("Biomass (g cm"^ -2*")"~"\n"),
-       title= "(a) \n", color = "Fertilizer treatment", fill = "Fertilizer treatment") + # label axes
+       title= "(a) \n", color = "Treatment", fill = "Treatment") + # label axes
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(),
-        axis.line = element_line(colour = "black"),
-        plot.title = element_text(color = "grey20", size = 25, hjust = 0, vjust = 0, face = "plain"),
-        axis.text.x = element_text(color = "grey20", size = 20, hjust = .5, vjust = .5, face = "plain"),
-        axis.title.x = element_text(color = "grey20", size = 25, hjust = .5, vjust = 0, face = "plain"),
-        axis.text.y = element_text(color = "grey20", size = 20, hjust = .5, vjust = .5, face = "plain"),
-        axis.title.y = element_text(color = "grey20", size = 25, hjust = .5, vjust = 0, face = "plain"),
+        axis.line = element_line(colour = "black", size = 1.2),
+        plot.title = element_text(color = "black", size = 25, hjust = 0, vjust = 0, face = "plain"),
+        axis.text.x = element_text(color = "black", size = 24, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.x = element_text(color = "black", size = 25, hjust = .5, vjust = 0, face = "plain"),
+        axis.text.y = element_text(color = "black", size = 24, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.y = element_text(color = "black", size = 25, hjust = .5, vjust = 0, face = "plain",
+                                    margin = margin(r = 15)),
         legend.key.size = unit(2.4, "cm"), # increase legend size
         legend.text = element_text(size = 20), # increase legend text
         legend.title = element_text(size = 25),
@@ -775,12 +803,12 @@ bio_graph$Letter_height <- bio_graph$Biomass.per.cm2 + bio_graph$Biomass.per.cm2
         legend.box = 'horizontal',
         legend.background = element_rect(color = NA)# make legend horizontal
   ) +
-    annotate("text", x = 0.5, y = 0.04, label = "Timepoint: P <0.001\nTreatment: P = 0.048\nTimepoint x Treatment: P = 0.16",
+    annotate("text", x = 0.5, y = 0.3, label = "Timepoint: P <0.001\nTreatment: P = 0.048\nTimepoint x Treatment: P = 0.16",
              hjust = 0, size = 8) +
     geom_segment(aes(x = 2.25, y = 0.01919681, xend = 2.25, yend = 0.03276647)) +
     geom_segment(aes(x = 2.22, y = 0.01919681, xend = 2.25, yend = 0.01919681)) +
     geom_segment(aes(x = 2.22, y = 0.03276647, xend = 2.25, yend = 0.03276647)) +
-    annotate("text", x = 2.3, y = 0.02598164, label = "*", vjust = 0.5, size = 12))
+    annotate("text", x = 2.3, y = 0.0234, label = "*", vjust = 0.5, size = 12))
 
 
 
@@ -811,18 +839,20 @@ Anova(cn.mod) # Chi-sq = 1.6, P = 0.2
   geom_jitter(width = 0.1, size = 3) +
   theme_classic() + 
   labs(y = "C:N", title= "(b) \n") + # label axes
-  scale_x_discrete(limits = c('N', 'Y'), name = "Fertilizer treatment",
+  scale_x_discrete(limits = c('N', 'Y'), name = "Treatment",
                    labels = c("N" = "Unfertilized", "Y" = "Fertilized")) +
+
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(),
         legend.position = "none",
-        axis.line = element_line(colour = "black"),
-        plot.title = element_text(color = "grey20", size = 25, hjust = 0, vjust = 0, face = "plain"),
-        axis.text.x = element_text(color = "grey20", size = 20, hjust = .5, vjust = .5, face = "plain"),
-        axis.title.x = element_text(color = "grey20", size = 25, hjust = .5, vjust = 0, face = "plain"),
-        axis.text.y = element_text(color = "grey20", size = 20, hjust = .5, vjust = .5, face = "plain"),
-        axis.title.y = element_text(color = "grey20", size = 25, hjust = .5, vjust = 0, face = "plain")
+        axis.line = element_line(colour = "black", size = 1.2),
+        plot.title = element_text(color = "black", size = 25, hjust = 0, vjust = 0, face = "plain"),
+        axis.text.x = element_text(color = "black", size = 24, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.x = element_text(color = "black", size = 25, hjust = .5, vjust = 0, face = "plain"),
+        axis.text.y = element_text(color = "black", size = 24, hjust = .5, vjust = .5, face = "plain"),
+        axis.title.y = element_text(color = "black", size = 25, hjust = .5, vjust = 0, face = "plain", margin = margin(r = 15))
+
   )  +
     annotate("text", x = 0.6, y = 28, label = "LMER\nChi-sq = 1.6, P = 0.21",
              hjust = 0, size = 8) 
@@ -832,6 +862,7 @@ Anova(cn.mod) # Chi-sq = 1.6, P = 0.2
 ## create plot
 
 ```{r turf characteristics panel, fig.height=10, fig.width=18}
-ggpubr::ggarrange(bio_plot, cn_plot, nrow = 1, widths = c(1,1))
+(turf_traits <- ggpubr::ggarrange(bio_plot, cn_plot, nrow = 1, widths = c(1,1)))
+ggsave(here("output", "fig3.eps"), turf_traits, width = 18, height = 10, units = "in", dpi = "retina")
 ```
 
